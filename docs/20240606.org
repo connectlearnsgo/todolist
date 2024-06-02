@@ -1,0 +1,220 @@
+* 20240606
+** Routing Requests in Go
+*** RESTful Routes Overview
+- We are building an HTML-based site using RESTful principles.
+- Define routes for creating, reading, updating, and deleting resources.
+
+*** Defining RESTful Routes
+- *Home Page* (GET /)
+  - Display the home page.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/", homeHandler)
+    ```
+
+- *List All To-Do Lists* (GET /todos)
+  - Show all to-do lists.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/todos", listTodosHandler)
+    ```
+
+- *Show a Specific To-Do List* (GET /todos/{id})
+  - Show details of a specific to-do list.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/todos/", showTodoHandler)
+    ```
+
+- *Create a New To-Do List* (GET /todos/new, POST /todos)
+  - Display a form for creating a new to-do list and handle form submission.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/todos/new", newTodoFormHandler)
+    mux.HandleFunc("/todos", createTodoHandler)
+    ```
+
+- *Edit a To-Do List* (GET /todos/{id}/edit, POST /todos/{id}/edit)
+  - Display a form for editing a to-do list and handle form submission.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/todos/", editTodoFormHandler)
+    mux.HandleFunc("/todos/", updateTodoHandler)
+    ```
+
+- *Delete a To-Do List* (POST /todos/{id}/delete)
+  - Handle deletion of a to-do list.
+  - *Code Snippet:*
+    ```go
+    mux.HandleFunc("/todos/", deleteTodoHandler)
+    ```
+
+*** Dispatching Routes
+- We use `http.ServeMux` to route requests to the appropriate handler functions.
+- Each handler function will be responsible for a specific route and HTTP method.
+
+*** Example Code for Routing
+- *Main Function Setup:*
+  ```go
+  func main() {
+      mux := http.NewServeMux()
+      mux.HandleFunc("/", homeHandler)
+      mux.HandleFunc("/todos", listTodosHandler)
+      mux.HandleFunc("/todos/new", newTodoFormHandler)
+      mux.HandleFunc("/todos", createTodoHandler)
+      mux.HandleFunc("/todos/", showTodoHandler)
+      mux.HandleFunc("/todos/", editTodoFormHandler)
+      mux.HandleFunc("/todos/", updateTodoHandler)
+      mux.HandleFunc("/todos/", deleteTodoHandler)
+      log.Fatal(http.ListenAndServe(":8080", mux))
+  }
+  ```
+
+*** Testing Routes with curl
+- *Home Page*
+  - ```sh
+    curl http://localhost:8080/
+    ```
+
+- *List All To-Do Lists*
+  - ```sh
+    curl http://localhost:8080/todos
+    ```
+
+- *Show a Specific To-Do List*
+  - ```sh
+    curl http://localhost:8080/todos/1
+    ```
+
+- *Create a New To-Do List*
+  - ```sh
+    curl -X POST -d "name=New List" http://localhost:8080/todos
+    ```
+
+- *Edit a To-Do List*
+  - ```sh
+    curl -X POST -d "name=Updated List" http://localhost:8080/todos/1/edit
+    ```
+
+- *Delete a To-Do List*
+  - ```sh
+    curl -X POST http://localhost:8080/todos/1/delete
+    ```
+*** Customizing HTTP Headers
+- Customize HTTP headers to control various aspects of the response.
+- We can set headers such as `Content-Type`, `Cache-Control`, etc.
+
+- *Setting Content-Type Header*
+  - *Code Snippet:*
+    ```go
+    func homeHandler(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        // Other handler code
+    }
+    ```
+
+- *Setting Cache-Control Header*
+  - *Code Snippet:*
+    ```go
+    func listTodosHandler(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+        // Other handler code
+    }
+    ```
+
+*** Query Strings
+- Query strings are a way to pass data to the server as part of a URL.
+- They are commonly used for filtering, searching, and pagination in web applications.
+
+- *Parsing Query Strings*
+  - *Code Snippet:*
+    ```go
+    func listTodosHandler(w http.ResponseWriter, r *http.Request) {
+        query := r.URL.Query()
+        id := query.Get("id")
+        // Use the 'id' parameter to filter or retrieve data
+    }
+    ```
+  - *Testing with curl*
+    ```sh
+    curl http://localhost:8080/todos?id=123
+    ```
+
+- *Accessing Multiple Values*
+  - *Code Snippet:*
+    ```go
+    func listTodosHandler(w http.ResponseWriter, r *http.Request) {
+        query := r.URL.Query()
+        tags := query["tag"]
+        // 'tags' is now a slice containing all 'tag' values
+    }
+    ```
+  - *Testing with curl*
+    ```sh
+    curl http://localhost:8080/todos?tag=important
+    ```
+
+- *Working with Query Parameters*
+  - *Code Snippet:*
+    ```go
+    func listTodosHandler(w http.ResponseWriter, r *http.Request) {
+        query := r.URL.Query()
+        page := query.Get("page")
+        limit := query.Get("limit")
+        // Use 'page' and 'limit' parameters for pagination
+    }
+    ```
+  - *Testing with curl*
+    ```sh
+    curl http://localhost:8080/todos?page=2&limit=10
+    ```
+
+*** Using io.Writer and Fprintf
+- The `Fprintf` function in the `io` package allows us to format and write data to any `io.Writer` interface.
+- It provides a flexible way to generate formatted output, which can be useful for writing to different destinations such as files, network connections, or HTTP responses.
+
+- *Writing Formatted Data*
+  - *Code Snippet:*
+    ```go
+    package main
+
+    import (
+        "fmt"
+        "net/http"
+        "io"
+    )
+
+    func handler(w http.ResponseWriter, r *http.Request) {
+        // Writing formatted data to the response writer
+        fmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])
+    }
+
+    func main() {
+        http.HandleFunc("/", handler)
+        http.ListenAndServe(":8080", nil)
+    }
+    ```
+  - *Testing with curl*
+    ```sh
+    curl http://localhost:8080/John
+    ```
+
+*** Project Organization: Feature-based Approach
+- Organizing code based on features or use cases helps in maintaining a clear and modular codebase.
+- Each feature or usecase will encapsulated within its own package,
+- This will promote a better separation of concerns and reusability.
+
+- *Introduction to Project Organization*
+  - *Todolist Feature Organization*
+    - For our example, let's consider the todolist feature.
+    - We create an `internal/todo` package to contain all related functionality.
+
+- *Handler Functions*
+  - Within the `internal/todo` package, we have a `handler.go` file.
+  - This file houses all handler functions responsible for handling HTTP requests related to the todolist feature.
+  - Later we will use a proper file for each new requirements for the project (db, repos, services, interfaces...)
+
+- *Future Enhancements*
+  - While our current handlers are simple functions, we'll turn them into struct methods.
+  - This will allow us to encapsulate state as well important dependencies as logging and config related ones.
+  - We'll learn how to encapsulate handler logic within structs, allowing us to manage state and dependencies such as logging and configuration more effectively.
