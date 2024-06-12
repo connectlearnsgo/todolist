@@ -17,7 +17,7 @@ var lists []List
 
 func main() {
 	lists = []List{
-		List{
+		{
 			Name: "Groceries",
 			Items: []string{
 				"Apples",
@@ -32,7 +32,6 @@ func main() {
 	mux.HandleFunc("/", showHome)
 	mux.HandleFunc("/todos/", handleTodos)
 	mux.HandleFunc("/todos", handleTodos)
-	// mux.HandleFunc("/todos/", showTodoEdit)
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

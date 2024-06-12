@@ -1,0 +1,91 @@
+* 20240613
+** Adding Delete and Edit Functionality to Our RESTful Routes
+*** Overview
+- We're going to add delete and edit functionality to our RESTful routes.
+- We'll also update our `handleTodos` function to dispatch requests to these new handlers.
+
+*** Delete Functionality
+- The `deleteTodo` function will remove a todo list from the `lists` slice.
+- It will be called when the HTTP method is DELETE and the path is `/todos/:id`.
+
+Handler:
+```go
+func deleteTodo(w http.ResponseWriter, r *http.Request) {
+    idStr := strings.TrimPrefix(r.URL.Path, "/todos/")
+    id, _ := strconv.Atoi(idStr)
+    if id < len(lists) {
+        lists = append(lists[:id], lists[id+1:]...)
+        http.Redirect(w, r, "/todos", http.StatusSeeOther)
+        return
+    }
+
+    http.Error(w, "List not found", http.StatusNotFound)
+}
+```
+CURL Call:
+```bash
+curl -X DELETE http://localhost:8080/todos/{id}
+```
+
+*** Edit Functionality
+- The `editTodo` function will display an HTML form for editing a todo list.
+- It will be called when the HTTP method is GET and the path is `/todos/:id/edit`.
+
+Handler:
+```go
+func editTodo(w http.ResponseWriter, r *http.Request) {
+    idStr := strings.TrimPrefix(r.URL.Path, "/todos/")
+    idStr = strings.TrimSuffix(idStr, "/edit")
+    id, _ := strconv.Atoi(idStr)
+    if id < len(lists) {
+        fmt.Fprintf(w, `<form method="PUT" action="/todos/%d">
+            <input type="text" name="name" value="%s">
+            <input type="submit" value="Update">
+        </form>`, id, lists[id].Name)
+    } else {
+        http.Error(w, "List not found", http.StatusNotFound)
+    }
+}
+```
+CURL Call:
+```bash
+curl http://localhost:8080/todos/{id}/edit
+```
+
+*** Updating handleTodos Function
+- We need to update the `handleTodos` function to dispatch requests to the new `deleteTodo` and `editTodo` handlers.
+- When the HTTP method is DELETE, it should call `deleteTodo`.
+- When the HTTP method is GET and the path ends with `/edit`, it should call `editTodo`.
+
+Updated `handleTodos` Function:
+```go
+func handleTodos(w http.ResponseWriter, r *http.Request) {
+    path := strings.TrimPrefix(r.URL.Path, "/todos")
+    if path != "/" {
+        switch r.Method {
+        case http.MethodGet:
+            if strings.HasSuffix(path, "/edit") {
+                editTodo(w, r)
+            } else {
+                showTodo(w, r)
+            }
+        case http.MethodPut:
+            updateTodo(w, r)
+        case http.MethodDelete:
+            deleteTodo(w, r)
+        default:
+            http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+        }
+        return
+    }
+
+    switch r.Method {
+    case http.MethodGet:
+        showTodos(w, r)
+    case http.MethodPost:
+        createTodo(w, r)
+    default:
+        http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+    }
+}
+    ```
